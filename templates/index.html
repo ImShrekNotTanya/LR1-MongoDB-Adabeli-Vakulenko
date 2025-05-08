@@ -1,1 +1,89 @@
+<!DOCTYPE html>  <!-- Определяет тип документа как HTML5 -->
+<html lang="ru">  <!-- Открывает тег html и устанавливает язык страницы на русский -->
+<head>
+    <meta charset="UTF-8">  <!-- Устанавливает кодировку документа на UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  <!-- Настройки для адаптивного дизайна -->
+    <title>LW2 MongoDB 236 TADV</title>  <!-- Заголовок страницы, отображаемый в вкладке браузера -->
+    <link rel="icon" href="{{ url_for('static', filename='brain.ico') }}" type="image/x-icon">  <!-- Устанавливает фавикон -->
+    <link rel="stylesheet" type="text/css" href="static/css/style.css">  <!-- Подключает файл стилей CSS -->
+</head>
 
+<body>
+<h1>Данные парсинга из MongoDB</h1>  <!-- Заголовок первого уровня страницы -->
+
+<h2>
+    <button id="toggle-form-button" onclick="toggleForm()">Добавить новый элемент</button>  <!-- Кнопка для открытия формы добавления нового элемента -->
+</h2>
+
+<form id="add-item-form" action="{{ url_for('add_item') }}" method="post">  <!-- Форма для добавления нового элемента, отправляющая данные на сервер -->
+    <input type="text" name="title" placeholder="Название"><br>  <!-- Поле ввода для названия -->
+    <input type="text" name="href" placeholder="Ссылки"><br>  <!-- Поле ввода для ссылок -->
+    <input type="text" name="datime" placeholder="Дата и время (yyyy-mm-dd hh:mm:ss)"><br>  <!-- Поле ввода для даты и времени -->
+    <input type="text" name="author" placeholder="Авторы"><br>  <!-- Поле ввода для авторов -->
+    <input type="text" name="short_text" placeholder="Краткое содержание"><br>  <!-- Поле ввода для краткого содержания -->
+    <input type="text" name="full_text" placeholder="Содержание"><br>  <!-- Поле ввода для полного текста -->
+    <button type="submit">Добавить</button>  <!-- Кнопка для отправки формы -->
+</form>
+
+<table id="data-table">  <!-- Таблица для отображения данных из MongoDB -->
+    <thead>
+    <tr>
+        <th>Название</th>  <!-- Заголовок столбца для названия -->
+        <th>Ссылки</th>  <!-- Заголовок столбца для ссылок -->
+        <th>Дата и время</th>  <!-- Заголовок столбца для даты и времени -->
+        <th>Авторы</th>  <!-- Заголовок столбца для авторов -->
+        <th>Краткое содержание</th>  <!-- Заголовок столбца для краткого содержания -->
+        <th>Содержание</th>  <!-- Заголовок столбца для полного содержания -->
+        <th id="actions-header">Действия</th>  <!-- Заголовок столбца для действий (редактировать/удалить) -->
+    </tr>
+    </thead>
+    <tbody>
+    {% for item in items %}  <!-- Начало цикла по элементам items, которые переданы из Flask -->
+    <tr>
+        <td class="data-cell">{{ item.title }}</td>  <!-- Ячейка с названием элемента -->
+        <td class="data-cell">{{ item.href }}</td>  <!-- Ячейка со ссылками элемента -->
+        <td class="data-cell">{{ item.datime }}</td>  <!-- Ячейка с датой и временем элемента -->
+        <td class="data-cell">{{ item.author }}</td>  <!-- Ячейка с авторами элемента -->
+        <td class="data-cell">{{ item.short_text }}</td>  <!-- Ячейка с кратким содержанием элемента -->
+        <td class="data-cell collapsible">  <!-- Ячейка с полным содержанием, которая может быть скрыта/показана -->
+            <div class="content-wrapper">  <!-- Обертка для содержимого -->
+                <div class="content-inner">
+                    {{ item.full_text }}  <!-- Полное содержание элемента -->
+                </div>
+                <button onclick="toggleContent(this)">Читать далее</button>  <!-- Кнопка для показа/скрытия полного текста -->
+            </div>
+        </td>
+        <td class="actions-cell">  <!-- Ячейка для действий над элементом (редактировать/удалить) -->
+            <button onclick="toggleEditForm('edit-form-{{ item._id }}', this.parentNode.parentNode, this)">Редактировать</button>  <!-- Кнопка для редактирования элемента -->
+            <form id="edit-form-{{ item._id }}" action="{{ url_for('update_item', item_id=item._id) }}" method="post" style="display:none;">  <!-- Форма редактирования элемента, скрытая по умолчанию -->
+                <input type="text" name="title" value="{{ item.title }}" placeholder="Название"><br>  <!-- Поле ввода для названия с текущим значением -->
+                <input type="text" name="href" value="{{ item.href }}" placeholder="Ссылки"><br>  <!-- Поле ввода для ссылок с текущим значением -->
+                <input type="text" name="datime" value="{{ item.datime }}" placeholder="Дата и время"><br>  <!-- Поле ввода для даты и времени с текущим значением -->
+                <input type="text" name="author" value="{{ item.author }}" placeholder="Авторы"><br>  <!-- Поле ввода для авторов с текущим значением -->
+                <input type="text" name="short_text" value="{{ item.short_text }}" placeholder="Краткое содержание"><br>  <!-- Поле ввода для краткого содержания с текущим значением -->
+                <input type="text" name="full_text" value="{{ item.full_text }}" placeholder="Содержание"><br>  <!-- Поле ввода для полного текста с текущим значением -->
+                <button type="submit">Обновить</button>  <!-- Кнопка для отправки формы редактирования -->
+            </form>
+            <a href="#" onclick="confirmDelete(event, '{{ url_for('delete_item', item_id=item._id) }}')">Удалить</a>  <!-- Ссылка для удаления элемента с подтверждением действия -->
+
+            <div id="deleteConfirmationModal" class="modal">  <!-- Модальное окно подтверждения удаления -->
+                <div class="modal-content">
+                    <p>Вы уверены, что хотите удалить этот элемент?</p>  <!-- Сообщение подтверждения удаления -->
+                    <button id="confirmDeleteButton">Да</button>  <!-- Кнопка подтверждения удаления -->
+                    <button id="cancelDeleteButton">Нет</button>  <!-- Кнопка отмены удаления -->
+                </div>
+            </div>
+
+            <div id="modalOverlay" class="modal-overlay"></div>  <!-- Полупрозрачный фон для модального окна -->
+        </td>
+    </tr>
+    {% endfor %}  <!-- Конец цикла по элементам items -->
+    </tbody>
+</table>
+
+<button onclick="toggleTable(this)">Показать полностью</button>  <!-- Кнопка для показа/скрытия таблицы -->
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>  <!-- Подключает JavaScript файл для функциональности страницы -->
+
+</body>
+</html>
